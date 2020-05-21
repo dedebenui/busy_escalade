@@ -153,6 +153,8 @@ def grouped_mean(time_stamps, values, grouping_func=time_selector.day):
 if __name__ == "__main__":
     time_stamps, percents = import_data("Fribourg.txt")
 
+    plot_lines = ['.-', '-s', '*-', '--s', '--*', ':*', '-*']
+
     _, perc = grouped_mean(time_stamps, percents, time_selector.datetime(dt.time(12, 0), dt.time(18,0)))
     print(f"Occupation moyenne avant midi : {perc[0]:.0f}%")
     print(f"Occupation moyenne entre midi et 18h : {perc[1]:.0f}%")
@@ -175,11 +177,11 @@ if __name__ == "__main__":
     
     fig, ax = plt.subplots()
 
-    for key, val in weekdays.items():
+    for i, (key, val) in enumerate(weekdays.items()):
         val = np.array(val)
         val[1] = val[1][np.argsort(val[0])]
         val[0].sort()
-        ax.plot(val[0], val[1], label=_WEEK_DAYS[key])
+        ax.plot(val[0], val[1], plot_lines[i], label=_WEEK_DAYS[key])
 
     ax.plot(global_hours, global_perc, label="global")
     ax.set_xlim(9, 23)
