@@ -39,7 +39,7 @@ class time_selector:
         if dates = [yesterday, last week], the returned delimiter will assign one of 3 indices
         0 : all dates before and including last week
         1 : all dates strictly after last week but up to yesterday
-        2 : all dates strictly after
+        2 : all dates strictly after yesterday
         """
         dates = list(dates)
         dates.sort()
@@ -153,7 +153,7 @@ def grouped_mean(time_stamps, values, grouping_func=time_selector.day):
 if __name__ == "__main__":
     time_stamps, percents = import_data("Fribourg.txt")
 
-    _, perc = grouped_mean(time_stamps, percents, time_selector.combine(time_selector.datetime(dt.time(12, 0)), time_selector.datetime(dt.time(18, 0))))
+    _, perc = grouped_mean(time_stamps, percents, time_selector.datetime(dt.time(12, 0), dt.time(18,0)))
     print(f"Occupation moyenne avant midi : {perc[0]:.0f}%")
     print(f"Occupation moyenne entre midi et 18h : {perc[1]:.0f}%")
     print(f"Occupation moyenne après 18h : {perc[2]:.0f}%")
