@@ -3,8 +3,7 @@ import datetime as dt
 import matplotlib.pyplot as plt
 import csv
 import re
-
-_WEEK_DAYS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"]
+from config import config, strings
 
 class time_selector:
     """
@@ -80,9 +79,9 @@ def less_than_ten_is_five(s):
     if "<" in s:
         return 5
     else:
-        return int(re.search("[0-9]+", s).group(0))
+        return int(re.search('[0-9]+', s).group(0))
 
-def import_data(path, delimiter=" ", date_time_fmt="%Y-%m-%d %H:%M:%S", percent_fmt=less_than_ten_is_five):
+def import_data(path, delimiter=' ', date_time_fmt='%Y-%m-%d %H:%M:%S', percent_fmt=less_than_ten_is_five):
     """imports the data. Assumes that date and time are sperate columns to be merged together with a space.
     Parameters
     ----------
@@ -107,8 +106,8 @@ def import_data(path, delimiter=" ", date_time_fmt="%Y-%m-%d %H:%M:%S", percent_
         reader = csv.reader(data_file, delimiter=delimiter)
         for row in reader:
             if len(row) > 2:
-                date_time_str = " ".join(row[:2]).split(".")[0] # ignore milliseconds
-                percent_str = " ".join(row[2:])
+                date_time_str = ' '.join(row[:2]).split('.')[0] # ignore milliseconds
+                percent_str = ' '.join(row[2:])
                 
                 time_stamps.append(dt.datetime.strptime(date_time_str, date_time_fmt))
                 percent.append(percent_fmt(percent_str))
@@ -150,42 +149,52 @@ def grouped_mean(time_stamps, values, grouping_func=time_selector.day):
 
 
 
-if __name__ == "__main__":
-    time_stamps, percents = import_data("Fribourg.txt")
-
-    plot_lines = ['.-', '-s', '*-', '--s', '--*', ':*', '-*']
-
-    _, perc = grouped_mean(time_stamps, percents, time_selector.datetime(dt.time(12, 0), dt.time(18,0)))
-    print(f"Occupation moyenne avant midi : {perc[0]:.0f}%")
-    print(f"Occupation moyenne entre midi et 18h : {perc[1]:.0f}%")
-    print(f"Occupation moyenne après 18h : {perc[2]:.0f}%")
-
-    weekday_hours, weekday_perc = grouped_mean(time_stamps, percents, time_selector.combine(time_selector.week_day, time_selector.hour))
-    global_hours, global_perc = grouped_mean(time_stamps, percents, time_selector.hour)
-
-    global_perc = np.array(global_perc)[np.argsort(global_hours)]
-    global_hours.sort()
+if __name__ == '__main__':
+    fritime, fripercents = import_data('Fribourg.txt')
+    givitime, givipercents = import_data('Givisiez.txt')
+    strings = strings['french']
 
 
-    weekdays = {} # reorganize in {weekday: [hour, mean_percent]} dictionary
-    for key, val in zip(weekday_hours, weekday_perc):
+    _, perc = grouped_mean(fritime, fripercents, time_selector.datetime(dt.time(12, 0), dt.time(18,0)))
+    print(f'Occupation moyenne avant midi : {perc[0]:.0f}%')
+    print(f'Occupation moyenne entre midi et 18h : {perc[1]:.0f}%')
+    print(f'Occupation moyenne après 18h : {perc[2]:.0f}%')
 
-        if key[0] not in weekdays:
-            weekdays[key[0]] = [[],[]]
-        weekdays[key[0]][0].append(key[1])
-        weekdays[key[0]][1].append(val)
-    
-    fig, ax = plt.subplots()
 
-    for i, (key, val) in enumerate(weekdays.items()):
-        val = np.array(val)
-        val[1] = val[1][np.argsort(val[0])]
-        val[0].sort()
-        ax.plot(val[0], val[1], plot_lines[i], label=_WEEK_DAYS[key])
 
-    ax.plot(global_hours, global_perc, label="global")
-    ax.set_xlim(9, 23)
-    ax.set_xlabel("heure de la journée")
-    ax.set_ylabel("pourcentage d'occupation")
-    ax.legend()
+    # Plots
+    fig = plt.figure(figsize=(10, 5))
+    gs = plt.GridSpec(1, 2, wspace=0.05)
+    left = fig.add_subplot(gs[0])
+    left.set_title('Fribourg')
+    right = fig.add_subplot(gs[1])
+    right.set_title('Givisiez')
+    right.tick_params(labelleft=False)
+
+    for time, percents, ax in zip([fritime, givitime], [fripercents, givipercents], [left, right]):
+        weekday_hours, weekday_perc = grouped_mean(time, percents, time_selector.combine(time_selector.week_day, time_selector.hour))
+        global_hours, global_perc = grouped_mean(time, percents, time_selector.hour)
+
+        global_perc = np.array(global_perc)[np.argsort(global_hours)]
+        global_hours.sort()
+        weekdays = {} # reorganize in {weekday: [hour, mean_percent]} dictionary
+        for key, val in zip(weekday_hours, weekday_perc):
+
+            if key[0] not in weekdays:
+                weekdays[key[0]] = [[],[]]
+            weekdays[key[0]][0].append(key[1])
+            weekdays[key[0]][1].append(val)
+        
+
+        for i, (key, val) in enumerate(weekdays.items()):
+            val = np.array(val)
+            val[1] = val[1][np.argsort(val[0])]
+            val[0].sort()
+            ax.plot(val[0], val[1], config['plot.linestyles'][i], c=config['plot.colors'][i], label=strings['weekdays'][key])
+
+        ax.plot(global_hours, global_perc, c='grey', label='Global')
+        ax.set_xlim(9, 23)
+        ax.set_xlabel(strings['timeofday'])
+    left.legend()
+    left.set_ylabel(strings['occupancy'] + ' (%)')
     plt.show()
